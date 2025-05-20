@@ -1,0 +1,232 @@
+basePath: /
+definitions:
+  models.Cashback:
+    properties:
+      cashback_amount:
+        example: 100.5
+        type: number
+      cinerama_user_id:
+        example: 456
+        type: integer
+      created_at:
+        example: "2024-03-20T10:00:00Z"
+        type: string
+      deleted_at:
+        example: "null"
+        type: string
+      id:
+        example: 1
+        type: integer
+      turon_user_id:
+        example: 123
+        type: integer
+      updated_at:
+        example: "2024-03-20T10:00:00Z"
+        type: string
+    type: object
+  models.CashbackHistory:
+    properties:
+      cashback_amount:
+        example: 50.25
+        type: number
+      cashback_id:
+        example: 1
+        type: integer
+      created_at:
+        example: "2024-03-20T10:00:00Z"
+        type: string
+      deleted_at:
+        example: "null"
+        type: string
+      device:
+        example: Mozilla/5.0
+        type: string
+      host_ip:
+        example: 192.168.1.1
+        type: string
+      id:
+        example: 1
+        type: integer
+      type:
+        example: increase
+        type: string
+      updated_at:
+        example: "2024-03-20T10:00:00Z"
+        type: string
+    type: object
+  models.CashbackRequest:
+    properties:
+      cashback_amount:
+        example: 100.5
+        type: number
+      cinerama_user_id:
+        example: 456
+        type: integer
+      device:
+        example: Mozilla/5.0
+        type: string
+      host_ip:
+        example: 192.168.1.1
+        type: string
+      turon_user_id:
+        example: 123
+        type: integer
+    required:
+    - cashback_amount
+    - cinerama_user_id
+    - turon_user_id
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: CASHBACK SERVICE API
+  title: Cashback Service API
+  version: "1.0"
+paths:
+  /cashback/{turon_user_id}:
+    get:
+      consumes:
+      - application/json
+      description: Cashback amount of the user
+      parameters:
+      - description: Turon User ID
+        in: path
+        name: turon_user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Cashback'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: GET Cashback
+      tags:
+      - cashback
+  /cashback/{turon_user_id}/history:
+    get:
+      consumes:
+      - application/json
+      description: CashbackHistoryUser
+      parameters:
+      - description: Turon User ID
+        in: path
+        name: turon_user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.CashbackHistory'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: CashbackHistory of the user
+      tags:
+      - cashback
+  /cashback/decrease:
+    post:
+      consumes:
+      - application/json
+      description: Cashback amount decrease of the user
+      parameters:
+      - description: 'Cashback amount decrease '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CashbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cashback amount decrease
+      tags:
+      - cashback
+  /cashback/increase:
+    post:
+      consumes:
+      - application/json
+      description: Increase cashback of the user
+      parameters:
+      - description: Cashback increase
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CashbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cashback increase
+      tags:
+      - cashback
+swagger: "2.0"

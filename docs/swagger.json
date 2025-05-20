@@ -1,0 +1,341 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "CASHBACK SERVICE API",
+        "title": "Cashback Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/cashback/decrease": {
+            "post": {
+                "description": "Cashback amount decrease of the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashback"
+                ],
+                "summary": "Cashback amount decrease",
+                "parameters": [
+                    {
+                        "description": "Cashback amount decrease ",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CashbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/cashback/increase": {
+            "post": {
+                "description": "Increase cashback of the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashback"
+                ],
+                "summary": "Cashback increase",
+                "parameters": [
+                    {
+                        "description": "Cashback increase",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CashbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/cashback/{turon_user_id}": {
+            "get": {
+                "description": "Cashback amount of the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashback"
+                ],
+                "summary": "GET Cashback",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Turon User ID",
+                        "name": "turon_user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Cashback"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/cashback/{turon_user_id}/history": {
+            "get": {
+                "description": "CashbackHistoryUser",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cashback"
+                ],
+                "summary": "CashbackHistory of the user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Turon User ID",
+                        "name": "turon_user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.CashbackHistory"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.Cashback": {
+            "type": "object",
+            "properties": {
+                "cashback_amount": {
+                    "type": "number",
+                    "example": 100.5
+                },
+                "cinerama_user_id": {
+                    "type": "integer",
+                    "example": 456
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-03-20T10:00:00Z"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "example": "null"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "turon_user_id": {
+                    "type": "integer",
+                    "example": 123
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-03-20T10:00:00Z"
+                }
+            }
+        },
+        "models.CashbackHistory": {
+            "type": "object",
+            "properties": {
+                "cashback_amount": {
+                    "type": "number",
+                    "example": 50.25
+                },
+                "cashback_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-03-20T10:00:00Z"
+                },
+                "deleted_at": {
+                    "type": "string",
+                    "example": "null"
+                },
+                "device": {
+                    "type": "string",
+                    "example": "Mozilla/5.0"
+                },
+                "host_ip": {
+                    "type": "string",
+                    "example": "192.168.1.1"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "type": {
+                    "type": "string",
+                    "example": "increase"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2024-03-20T10:00:00Z"
+                }
+            }
+        },
+        "models.CashbackRequest": {
+            "type": "object",
+            "required": [
+                "cashback_amount",
+                "cinerama_user_id",
+                "turon_user_id"
+            ],
+            "properties": {
+                "cashback_amount": {
+                    "type": "number",
+                    "example": 100.5
+                },
+                "cinerama_user_id": {
+                    "type": "integer",
+                    "example": 456
+                },
+                "device": {
+                    "type": "string",
+                    "example": "Mozilla/5.0"
+                },
+                "host_ip": {
+                    "type": "string",
+                    "example": "192.168.1.1"
+                },
+                "turon_user_id": {
+                    "type": "integer",
+                    "example": 123
+                }
+            }
+        }
+    }
+}
