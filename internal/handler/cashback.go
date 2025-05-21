@@ -5,9 +5,9 @@ import (
 	"cashback-serv/models"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 )
 
 // @title Cashback Service API
@@ -34,6 +34,10 @@ func (h *CashbackHandler) RegisterRoutes(router *gin.Engine) {
 	}
 }
 
+func (h *CashbackHandler) handleError(c *gin.Context, err error, status int) {
+	c.JSON(status, gin.H{"error": err.Error()})
+}
+
 // @Summary Cashback increase
 // @Description Increase cashback of the user
 // @Tags cashback
@@ -47,15 +51,12 @@ func (h *CashbackHandler) RegisterRoutes(router *gin.Engine) {
 func (h *CashbackHandler) IncreaseCashback(c *gin.Context) {
 	var req models.CashbackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.handleError(c, err, http.StatusBadRequest)
 		return
 	}
 
-	req.HostIP = c.ClientIP()
-	req.Type = c.GetHeader("User-Agent")
-
 	if err := h.service.IncreaseCashback(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -75,15 +76,12 @@ func (h *CashbackHandler) IncreaseCashback(c *gin.Context) {
 func (h *CashbackHandler) DecreaseCashback(c *gin.Context) {
 	var req models.CashbackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		h.handleError(c, err, http.StatusBadRequest)
 		return
 	}
 
-	req.HostIP = c.ClientIP()
-	req.Type = c.GetHeader("User-Agent")
-
 	if err := h.service.DecreaseCashback(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -96,8 +94,6 @@ func (h *CashbackHandler) DecreaseCashback(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param turon_user_id path int true "Turon User ID"
-// @Param from_date query string false "Start date" format(date) example(2024-03-01)
-// @Param to_date query string false "End date" format(date) example(2024-03-20)
 // @Success 200 {object} models.Cashback
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -106,35 +102,17 @@ func (h *CashbackHandler) DecreaseCashback(c *gin.Context) {
 func (h *CashbackHandler) GetCashback(c *gin.Context) {
 	turonUserID, err := strconv.ParseInt(c.Param("turon_user_id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id format"})
+		h.handleError(c, errors.New("invalid turon_user_id format"), http.StatusBadRequest)
 		return
 	}
-
-	fromDate := c.Query("from_date")
-	toDate := c.Query("to_date")
-
-	// Validate date formats if provided
-	if fromDate != "" {
-		if _, err := time.Parse("2006-01-02", fromDate); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from_date format. Use YYYY-MM-DD"})
-			return
-		}
-	}
-	if toDate != "" {
-		if _, err := time.Parse("2006-01-02", toDate); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to_date format. Use YYYY-MM-DD"})
-			return
-		}
-	}
-
-	cashback, err := h.service.GetCashbackByUserID(turonUserID, fromDate, toDate)
+	cashback, err := h.service.GetCashbackByUserID(turonUserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get cashback data"})
+		h.handleError(c, errors.New("failed to get cashback data"), http.StatusInternalServerError)
 		return
 	}
 
 	if cashback == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Cashback not found "})
+		h.handleError(c, errors.New("Cashback not found"), http.StatusNotFound)
 		return
 	}
 
@@ -158,7 +136,7 @@ func (h *CashbackHandler) GetCashback(c *gin.Context) {
 func (h *CashbackHandler) GetCashbackHistory(c *gin.Context) {
 	turonUserID, err := strconv.ParseInt(c.Param("turon_user_id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id format"})
+		h.handleError(c, errors.New("invalid user id format"), http.StatusBadRequest)
 		return
 	}
 
@@ -175,7 +153,7 @@ func (h *CashbackHandler) GetCashbackHistory(c *gin.Context) {
 
 	history, err := h.service.GetCashbackHistoryByUserID(turonUserID, fromDate, toDate, pagination)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.handleError(c, err, http.StatusInternalServerError)
 		return
 	}
 

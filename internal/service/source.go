@@ -20,14 +20,12 @@ func NewSourceService(repo SourceRepository) *SourceService {
 	return &SourceService{repo: repo}
 }
 
-func (s *SourceService) FindSourceOrCreate(turonUserID, cineramaUserID int64, hostIP string) (*models.Source, error) {
+func (s *SourceService) FindSourceOrCreate(turonUserID int64, hostIP string) (*models.Source, error) {
 	var slug string
-	if turonUserID != 0 && cineramaUserID == 0 {
+	if turonUserID != 0 {
 		slug = constants.SourceTuron
-	} else if cineramaUserID != 0 && turonUserID == 0 {
-		slug = constants.SourceCinerama
 	} else {
-		return nil, errors.New("cannot determine source slug: neither turon_user_id nor cinerama_user_id is provided, or both are provided")
+		return nil, errors.New("cannot determine source slug: turon_user_id must be provided")
 	}
 
 	source, err := s.repo.GetSourceBySlug(slug)
@@ -39,7 +37,7 @@ func (s *SourceService) FindSourceOrCreate(turonUserID, cineramaUserID int64, ho
 	}
 
 	newSource := &models.Source{
-		HostIP: hostIP, 
+		HostIP: hostIP,
 		Slug:   slug,
 	}
 

@@ -145,22 +145,6 @@ const docTemplate = `{
                         "name": "turon_user_id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "format": "date",
-                        "example": "2024-03-01",
-                        "description": "Start date",
-                        "name": "from_date",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "format": "date",
-                        "example": "2024-03-20",
-                        "description": "End date",
-                        "name": "to_date",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -293,10 +277,6 @@ const docTemplate = `{
                     "type": "number",
                     "example": 100.5
                 },
-                "cinerama_user_id": {
-                    "type": "integer",
-                    "example": 456
-                },
                 "created_at": {
                     "type": "string",
                     "example": "2024-03-20T10:00:00Z"
@@ -324,9 +304,6 @@ const docTemplate = `{
             "properties": {
                 "cashback_amount": {
                     "type": "number"
-                },
-                "cinerama_user_id": {
-                    "type": "integer"
                 },
                 "host_ip": {
                     "type": "string"

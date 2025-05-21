@@ -5,9 +5,6 @@ definitions:
       cashback_amount:
         example: 100.5
         type: number
-      cinerama_user_id:
-        example: 456
-        type: integer
       created_at:
         example: "2024-03-20T10:00:00Z"
         type: string
@@ -28,8 +25,6 @@ definitions:
     properties:
       cashback_amount:
         type: number
-      cinerama_user_id:
-        type: integer
       host_ip:
         type: string
       turon_user_id:
@@ -55,18 +50,6 @@ paths:
         name: turon_user_id
         required: true
         type: integer
-      - description: Start date
-        example: "2024-03-01"
-        format: date
-        in: query
-        name: from_date
-        type: string
-      - description: End date
-        example: "2024-03-20"
-        format: date
-        in: query
-        name: to_date
-        type: string
       produces:
       - application/json
       responses:

@@ -21,24 +21,21 @@ func (r *CashbackRepository) CreateCashback(cashback *models.Cashback) error {
 		INSERT INTO "cashback" (
 			cashback_amount,
 			turon_user_id,
-			cinerama_user_id,
 			created_at,
 			updated_at
 		) VALUES (
 			$cashback_amount$,
 			$turon_user_id$,
-			$cinerama_user_id$,
 			$created_at$,
 			$updated_at$
 		) RETURNING id`
 
 	now := time.Now()
 	args := map[string]interface{}{
-		"$cashback_amount$":  cashback.CashbackAmount,
-		"$turon_user_id$":    cashback.TuronUserID,
-		"$cinerama_user_id$": cashback.CineramaUserID,
-		"$created_at$":       now,
-		"$updated_at$":       now,
+		"$cashback_amount$": cashback.CashbackAmount,
+		"$turon_user_id$":   cashback.TuronUserID,
+		"$created_at$":      now,
+		"$updated_at$":      now,
 	}
 
 	namedQuery, namedArgs := buildNamedQuery(query, args)
@@ -80,32 +77,21 @@ func (r *CashbackRepository) CreateCashbackHistory(history *models.CashbackHisto
 	return r.db.QueryRow(namedQuery, namedArgs...).Scan(&history.ID)
 }
 
-func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64, fromDate, toDate string) (*models.Cashback, error) {
+func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64) (*models.Cashback, error) {
 	query := `
 		SELECT 
 			id,
 			cashback_amount,
 			turon_user_id,
-			cinerama_user_id,
 			created_at,
 			updated_at,
 			deleted_at
 		FROM cashback
-		WHERE turon_user_id = $turon_user_id$ 
+		WHERE turon_user_id = $turon_user_id$
 		AND deleted_at IS NULL`
 
 	args := map[string]interface{}{
 		"$turon_user_id$": turonUserID,
-	}
-
-	if fromDate != "" {
-		query += " AND created_at >= $from_date$"
-		args["$from_date$"] = fromDate
-	}
-
-	if toDate != "" {
-		query += " AND created_at <= $to_date$"
-		args["$to_date$"] = toDate
 	}
 
 	namedQuery, namedArgs := buildNamedQuery(query, args)
@@ -114,7 +100,6 @@ func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64, fromDate, to
 		&cashback.ID,
 		&cashback.CashbackAmount,
 		&cashback.TuronUserID,
-		&cashback.CineramaUserID,
 		&cashback.CreatedAt,
 		&cashback.UpdatedAt,
 		&cashback.DeletedAt,
@@ -145,6 +130,25 @@ func (r *CashbackRepository) UpdateCashbackAmount(id int64, newAmount float64) e
 	return err
 }
 
+func (r *CashbackRepository) buildDateFilters(query string, args map[string]interface{}, fromDate, toDate string) string {
+	if fromDate != "" {
+		query += " AND ch.created_at >= $from_date$"
+		args["$from_date$"] = fromDate
+	}
+	if toDate != "" {
+		query += " AND ch.created_at <= $to_date$"
+		args["$to_date$"] = toDate
+	}
+	return query
+}
+
+func (r *CashbackRepository) buildPagination(query string, args map[string]interface{}, pagination *models.Pagination) string {
+	query += " ORDER BY ch.created_at DESC LIMIT $limit$ OFFSET $offset$"
+	args["$limit$"] = pagination.Limit
+	args["$offset$"] = pagination.Offset
+	return query
+}
+
 func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromDate, toDate string, pagination *models.Pagination) ([]models.CashbackHistory, error) {
 	countQuery := `
 		SELECT COUNT(*)
@@ -157,15 +161,7 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromD
 		"$turon_user_id$": turonUserID,
 	}
 
-	if fromDate != "" {
-		countQuery += " AND ch.created_at >= $from_date$"
-		args["$from_date$"] = fromDate
-	}
-
-	if toDate != "" {
-		countQuery += " AND ch.created_at <= $to_date$"
-		args["$to_date$"] = toDate
-	}
+	countQuery = r.buildDateFilters(countQuery, args, fromDate, toDate)
 
 	namedCountQuery, namedCountArgs := buildNamedQuery(countQuery, args)
 	var total int64
@@ -181,7 +177,6 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromD
 		SELECT 
 			ch.id,
 			ch.cashback_id,
-			ch.source_id,
 			s.slug as source_slug,
 			ch.cashback_amount,
 			ch.host_ip,
@@ -195,16 +190,8 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromD
 		WHERE c.turon_user_id = $turon_user_id$ 
 		AND ch.deleted_at IS NULL`
 
-	if fromDate != "" {
-		query += " AND ch.created_at >= $from_date$"
-	}
-	if toDate != "" {
-		query += " AND ch.created_at <= $to_date$"
-	}
-
-	query += " ORDER BY ch.created_at DESC LIMIT $limit$ OFFSET $offset$"
-	args["$limit$"] = pagination.Limit
-	args["$offset$"] = pagination.Offset
+	query = r.buildDateFilters(query, args, fromDate, toDate)
+	query = r.buildPagination(query, args, pagination)
 
 	namedQuery, namedArgs := buildNamedQuery(query, args)
 	rows, err := r.db.Query(namedQuery, namedArgs...)
@@ -220,7 +207,6 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromD
 		if err := rows.Scan(
 			&h.ID,
 			&h.CashbackID,
-			&h.SourceID,
 			&sourceSlug,
 			&h.CashbackAmount,
 			&h.HostIP,

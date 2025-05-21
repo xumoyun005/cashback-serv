@@ -2,14 +2,14 @@ package queue
 
 import (
 	constants "cashback-serv/const"
-	"cashback-serv/internal/interfaces"
+	core "cashback-serv/internal/interfaces"
 	"cashback-serv/models"
 	"errors"
 	"sync"
 )
 
 type CashbackRepository interface {
-	GetCashbackByUserID(userID int64, fromDate, toDate string) (*models.Cashback, error)
+	GetCashbackByUserID(turonUserID int64) (*models.Cashback, error)
 	CreateCashback(cashback *models.Cashback) error
 	UpdateCashbackAmount(id int64, amount float64) error
 	CreateCashbackHistory(history *models.CashbackHistory) error
@@ -79,7 +79,7 @@ func (q *CashbackQueue) process() {
 }
 
 func (q *CashbackQueue) handleIncrease(req *QueueRequest) error {
-	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID, "", "")
+	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,6 @@ func (q *CashbackQueue) handleIncrease(req *QueueRequest) error {
 		cashback = &models.Cashback{
 			CashbackAmount: req.CashbackAmount,
 			TuronUserID:    req.TuronUserID,
-			CineramaUserID: req.CineramaUserID,
 		}
 		if err := q.repo.CreateCashback(cashback); err != nil {
 			return err
@@ -99,6 +98,10 @@ func (q *CashbackQueue) handleIncrease(req *QueueRequest) error {
 			return err
 		}
 		cashback.CashbackAmount = newAmount
+	}
+
+	if req.SourceID <= 0 {
+		return nil
 	}
 
 	history := &models.CashbackHistory{
@@ -112,7 +115,7 @@ func (q *CashbackQueue) handleIncrease(req *QueueRequest) error {
 }
 
 func (q *CashbackQueue) handleDecrease(req *QueueRequest) error {
-	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID, "", "")
+	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,7 @@ package service
 
 import (
 	constants "cashback-serv/const"
-	"cashback-serv/internal/interfaces"
+	core "cashback-serv/internal/interfaces"
 	"cashback-serv/internal/queue"
 	"cashback-serv/models"
 	"errors"
@@ -11,7 +11,7 @@ import (
 )
 
 type CashbackRepository interface {
-	GetCashbackByUserID(userID int64, fromDate, toDate string) (*models.Cashback, error)
+	GetCashbackByUserID(turonUserID int64) (*models.Cashback, error)
 	CreateCashback(cashback *models.Cashback) error
 	UpdateCashbackAmount(id int64, amount float64) error
 	CreateCashbackHistory(history *models.CashbackHistory) error
@@ -32,12 +32,19 @@ func NewCashbackService(repo CashbackRepository, sourceService core.SourceFinder
 	}
 }
 
+func (s *CashbackService) validateTuronUserID(turonUserID int64) error {
+	if turonUserID == 0 {
+		return errors.New("turon_user_id must be provided")
+	}
+	return nil
+}
+
 func (s *CashbackService) IncreaseCashback(req *models.CashbackRequest) error {
-	if req.TuronUserID != 0 && req.CineramaUserID != 0 {
-		return errors.New("only one of turon_user_id or cinerama_user_id should be provided")
+	if err := s.validateTuronUserID(req.TuronUserID); err != nil {
+		return err
 	}
 
-	source, err := s.sourceService.FindSourceOrCreate(req.TuronUserID, req.CineramaUserID, req.HostIP)
+	source, err := s.sourceService.FindSourceOrCreate(req.TuronUserID, req.HostIP)
 	if err != nil {
 		return fmt.Errorf("failed to determine source: %w", err)
 	}
@@ -46,11 +53,11 @@ func (s *CashbackService) IncreaseCashback(req *models.CashbackRequest) error {
 }
 
 func (s *CashbackService) DecreaseCashback(req *models.CashbackRequest) error {
-	if req.TuronUserID != 0 && req.CineramaUserID != 0 {
-		return errors.New("only one of turon_user_id or cinerama_user_id should be provided")
+	if err := s.validateTuronUserID(req.TuronUserID); err != nil {
+		return err
 	}
 
-	source, err := s.sourceService.FindSourceOrCreate(req.TuronUserID, req.CineramaUserID, req.HostIP)
+	source, err := s.sourceService.FindSourceOrCreate(req.TuronUserID, req.HostIP)
 	if err != nil {
 		return fmt.Errorf("failed to determine source: %w", err)
 	}
@@ -58,14 +65,18 @@ func (s *CashbackService) DecreaseCashback(req *models.CashbackRequest) error {
 	return s.queue.Enqueue(constants.Decrease, req, source.ID)
 }
 
-func (s *CashbackService) GetCashbackByUserID(turonUserID int64, fromDate, toDate string) (*models.Cashback, error) {
-	if err := s.validateDates(fromDate, toDate); err != nil {
+func (s *CashbackService) GetCashbackByUserID(turonUserID int64) (*models.Cashback, error) {
+	if err := s.validateTuronUserID(turonUserID); err != nil {
 		return nil, err
 	}
-	return s.repo.GetCashbackByUserID(turonUserID, fromDate, toDate)
+	return s.repo.GetCashbackByUserID(turonUserID)
 }
 
 func (s *CashbackService) GetCashbackHistoryByUserID(turonUserID int64, fromDate, toDate string, pagination *models.Pagination) ([]models.CashbackHistory, error) {
+	if err := s.validateTuronUserID(turonUserID); err != nil {
+		return nil, err
+	}
+
 	if err := s.validateDates(fromDate, toDate); err != nil {
 		return nil, err
 	}
