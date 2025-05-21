@@ -5,7 +5,7 @@ BINARY_NAME=cashback-serv
 build:
 	go build -o $(BINARY_NAME) cmd/main.go
 
-run: build
+run: init build
 	./$(BINARY_NAME)
 
 clean:
