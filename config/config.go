@@ -39,8 +39,8 @@ func (c *Config) GetDSN() string {
 
 func LoadConfig() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("error loading .env file: %w", err)
-	}
+		fmt.Errorf("error loading .env file: %w", err)
+		}
 
 	dbPort, err := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	if err != nil {

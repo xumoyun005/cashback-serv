@@ -1,6 +1,8 @@
 package constants
 
 const(
-	 Increase = "increase"
-	 Decrease = "decrease"
+	 Increase 		= "increase"
+	 Decrease     	= "decrease"
+	 SourceTuron    = "turon"
+	 SourceCinerama = "cinerama"
 )

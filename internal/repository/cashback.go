@@ -18,7 +18,7 @@ func NewCashbackRepository(db *sql.DB) *CashbackRepository {
 
 func (r *CashbackRepository) CreateCashback(cashback *models.Cashback) error {
 	query := `
-		INSERT INTO "cashbacks" (
+		INSERT INTO "cashback" (
 			cashback_amount,
 			turon_user_id,
 			cinerama_user_id,
@@ -47,19 +47,19 @@ func (r *CashbackRepository) CreateCashback(cashback *models.Cashback) error {
 
 func (r *CashbackRepository) CreateCashbackHistory(history *models.CashbackHistory) error {
 	query := `
-		INSERT INTO "cashback_histories" (
+		INSERT INTO "cashback_history" (
 			cashback_id,
+			source_id,
 			cashback_amount,
 			host_ip,
-			device,
 			type,
 			created_at,
 			updated_at
 		) VALUES (
 			$cashback_id$,
+			$source_id$,
 			$cashback_amount$,
 			$host_ip$,
-			$device$,
 			$type$,
 			$created_at$,
 			$updated_at$
@@ -68,9 +68,9 @@ func (r *CashbackRepository) CreateCashbackHistory(history *models.CashbackHisto
 	now := time.Now()
 	args := map[string]interface{}{
 		"$cashback_id$":     history.CashbackID,
+		"$source_id$":       history.SourceID,
 		"$cashback_amount$": history.CashbackAmount,
 		"$host_ip$":         history.HostIP,
-		"$device$":          history.Device,
 		"$type$":            history.Type,
 		"$created_at$":      now,
 		"$updated_at$":      now,
@@ -90,7 +90,7 @@ func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64, fromDate, to
 			created_at,
 			updated_at,
 			deleted_at
-		FROM cashbacks
+		FROM cashback
 		WHERE turon_user_id = $turon_user_id$ 
 		AND deleted_at IS NULL`
 
@@ -127,7 +127,7 @@ func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64, fromDate, to
 
 func (r *CashbackRepository) UpdateCashbackAmount(id int64, newAmount float64) error {
 	query := `
-		UPDATE cashbacks
+		UPDATE cashback
 		SET 
 			cashback_amount = $cashback_amount$,
 			updated_at = $updated_at$
@@ -146,11 +146,10 @@ func (r *CashbackRepository) UpdateCashbackAmount(id int64, newAmount float64) e
 }
 
 func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromDate, toDate string, pagination *models.Pagination) ([]models.CashbackHistory, error) {
-	// Get total count
 	countQuery := `
 		SELECT COUNT(*)
-		FROM cashback_histories ch
-		JOIN cashbacks c ON c.id = ch.cashback_id
+		FROM cashback_history ch
+		JOIN cashback c ON c.id = ch.cashback_id
 		WHERE c.turon_user_id = $turon_user_id$ 
 		AND ch.deleted_at IS NULL`
 
@@ -178,20 +177,21 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromD
 	pagination.ItemTotal = total
 	pagination.PageTotal = (total + pagination.PageSize - 1) / pagination.PageSize
 
-	// Get paginated data
 	query := `
 		SELECT 
 			ch.id,
 			ch.cashback_id,
+			ch.source_id,
+			s.slug as source_slug,
 			ch.cashback_amount,
 			ch.host_ip,
-			ch.device,
 			ch.type,
 			ch.created_at,
 			ch.updated_at,
 			ch.deleted_at
-		FROM cashback_histories ch
-		JOIN cashbacks c ON c.id = ch.cashback_id
+		FROM cashback_history ch
+		JOIN cashback c ON c.id = ch.cashback_id
+		LEFT JOIN sources s ON s.id = ch.source_id
 		WHERE c.turon_user_id = $turon_user_id$ 
 		AND ch.deleted_at IS NULL`
 
@@ -216,18 +216,23 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromD
 	var history []models.CashbackHistory
 	for rows.Next() {
 		var h models.CashbackHistory
+		var sourceSlug sql.NullString
 		if err := rows.Scan(
 			&h.ID,
 			&h.CashbackID,
+			&h.SourceID,
+			&sourceSlug,
 			&h.CashbackAmount,
 			&h.HostIP,
-			&h.Device,
 			&h.Type,
 			&h.CreatedAt,
 			&h.UpdatedAt,
 			&h.DeletedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan cashback history row: %w", err)
+		}
+		if sourceSlug.Valid {
+			h.SourceSlug = sourceSlug.String
 		}
 		history = append(history, h)
 	}
@@ -248,7 +253,6 @@ func buildNamedQuery(query string, args map[string]interface{}) (string, []inter
 		positionalArgs = append(positionalArgs, value)
 		position++
 	}
-
 	return query, positionalArgs
 }
 

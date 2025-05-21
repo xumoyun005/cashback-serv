@@ -2,31 +2,60 @@ package service
 
 import (
 	constants "cashback-serv/const"
+	"cashback-serv/internal/interfaces"
 	"cashback-serv/internal/queue"
-	"cashback-serv/internal/repository"
 	"cashback-serv/models"
 	"errors"
+	"fmt"
 	"time"
 )
 
-type CashbackService struct {
-	repo  *repository.CashbackRepository
-	queue *queue.CashbackQueue
+type CashbackRepository interface {
+	GetCashbackByUserID(userID int64, fromDate, toDate string) (*models.Cashback, error)
+	CreateCashback(cashback *models.Cashback) error
+	UpdateCashbackAmount(id int64, amount float64) error
+	CreateCashbackHistory(history *models.CashbackHistory) error
+	GetCashbackHistoryByUserID(turonUserID int64, fromDate, toDate string, pagination *models.Pagination) ([]models.CashbackHistory, error)
 }
 
-func NewCashbackService(repo *repository.CashbackRepository) *CashbackService {
+type CashbackService struct {
+	repo          CashbackRepository
+	queue         *queue.CashbackQueue
+	sourceService core.SourceFinderCreator
+}
+
+func NewCashbackService(repo CashbackRepository, sourceService core.SourceFinderCreator) *CashbackService {
 	return &CashbackService{
-		repo:  repo,
-		queue: queue.NewCashbackQueue(repo),
+		repo:          repo,
+		queue:         queue.NewCashbackQueue(repo, sourceService),
+		sourceService: sourceService,
 	}
 }
 
 func (s *CashbackService) IncreaseCashback(req *models.CashbackRequest) error {
-	return s.queue.Enqueue(constants.Increase, req)
+	if req.TuronUserID != 0 && req.CineramaUserID != 0 {
+		return errors.New("only one of turon_user_id or cinerama_user_id should be provided")
+	}
+
+	source, err := s.sourceService.FindSourceOrCreate(req.TuronUserID, req.CineramaUserID, req.HostIP)
+	if err != nil {
+		return fmt.Errorf("failed to determine source: %w", err)
+	}
+
+	return s.queue.Enqueue(constants.Increase, req, source.ID)
 }
 
 func (s *CashbackService) DecreaseCashback(req *models.CashbackRequest) error {
-	return s.queue.Enqueue(constants.Decrease, req)
+	if req.TuronUserID != 0 && req.CineramaUserID != 0 {
+		return errors.New("only one of turon_user_id or cinerama_user_id should be provided")
+	}
+
+	source, err := s.sourceService.FindSourceOrCreate(req.TuronUserID, req.CineramaUserID, req.HostIP)
+	if err != nil {
+		return fmt.Errorf("failed to determine source: %w", err)
+	}
+
+	return s.queue.Enqueue(constants.Decrease, req, source.ID)
 }
 
 func (s *CashbackService) GetCashbackByUserID(turonUserID int64, fromDate, toDate string) (*models.Cashback, error) {

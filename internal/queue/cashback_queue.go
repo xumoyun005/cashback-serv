@@ -2,6 +2,7 @@ package queue
 
 import (
 	constants "cashback-serv/const"
+	"cashback-serv/internal/interfaces"
 	"cashback-serv/models"
 	"errors"
 	"sync"
@@ -14,24 +15,35 @@ type CashbackRepository interface {
 	CreateCashbackHistory(history *models.CashbackHistory) error
 }
 
+type SourceFinderCreator interface {
+	FindSourceOrCreate(turonUserID, cineramaUserID int64, hostIP string) (*models.Source, error)
+}
+
+type QueueRequest struct {
+	*models.CashbackRequest
+	SourceID int64
+}
+
 type CashbackOperation struct {
 	Type     string
-	Request  *models.CashbackRequest
+	Request  *QueueRequest
 	Response chan error
 }
 
 type CashbackQueue struct {
-	operations chan *CashbackOperation
-	userLocks  map[int64]*sync.Mutex
-	mu         sync.RWMutex
-	repo       CashbackRepository
+	operations    chan *CashbackOperation
+	userLocks     map[int64]*sync.Mutex
+	mu            sync.RWMutex
+	repo          CashbackRepository
+	sourceService core.SourceFinderCreator
 }
 
-func NewCashbackQueue(repo CashbackRepository) *CashbackQueue {
+func NewCashbackQueue(repo CashbackRepository, sourceService core.SourceFinderCreator) *CashbackQueue {
 	queue := &CashbackQueue{
-		operations: make(chan *CashbackOperation, 1000),
-		userLocks:  make(map[int64]*sync.Mutex),
-		repo:       repo,
+		operations:    make(chan *CashbackOperation, 1000),
+		userLocks:     make(map[int64]*sync.Mutex),
+		repo:          repo,
+		sourceService: sourceService,
 	}
 
 	go queue.process()
@@ -66,7 +78,7 @@ func (q *CashbackQueue) process() {
 	}
 }
 
-func (q *CashbackQueue) handleIncrease(req *models.CashbackRequest) error {
+func (q *CashbackQueue) handleIncrease(req *QueueRequest) error {
 	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID, "", "")
 	if err != nil {
 		return err
@@ -91,15 +103,15 @@ func (q *CashbackQueue) handleIncrease(req *models.CashbackRequest) error {
 
 	history := &models.CashbackHistory{
 		CashbackID:     cashback.ID,
+		SourceID:       req.SourceID,
 		CashbackAmount: req.CashbackAmount,
 		HostIP:         req.HostIP,
-		Device:         req.Device,
-		Type:           constants.Increase,
+		Type:           req.Type,
 	}
 	return q.repo.CreateCashbackHistory(history)
 }
 
-func (q *CashbackQueue) handleDecrease(req *models.CashbackRequest) error {
+func (q *CashbackQueue) handleDecrease(req *QueueRequest) error {
 	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID, "", "")
 	if err != nil {
 		return err
@@ -120,18 +132,23 @@ func (q *CashbackQueue) handleDecrease(req *models.CashbackRequest) error {
 
 	history := &models.CashbackHistory{
 		CashbackID:     cashback.ID,
+		SourceID:       req.SourceID,
 		CashbackAmount: req.CashbackAmount,
 		HostIP:         req.HostIP,
-		Device:         req.Device,
-		Type:           constants.Decrease,
+		Type:           req.Type,
 	}
 	return q.repo.CreateCashbackHistory(history)
 }
 
-func (q *CashbackQueue) Enqueue(opType string, req *models.CashbackRequest) error {
+func (q *CashbackQueue) Enqueue(opType string, req *models.CashbackRequest, sourceID int64) error {
+	queueReq := &QueueRequest{
+		CashbackRequest: req,
+		SourceID:        sourceID,
+	}
+
 	op := &CashbackOperation{
 		Type:     opType,
-		Request:  req,
+		Request:  queueReq,
 		Response: make(chan error, 1),
 	}
 

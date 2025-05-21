@@ -27,24 +27,15 @@ definitions:
   models.CashbackRequest:
     properties:
       cashback_amount:
-        example: 100.5
         type: number
       cinerama_user_id:
-        example: 456
         type: integer
-      device:
-        example: Mozilla/5.0
-        type: string
       host_ip:
-        example: 192.168.1.1
         type: string
       turon_user_id:
-        example: 123
         type: integer
-    required:
-    - cashback_amount
-    - cinerama_user_id
-    - turon_user_id
+      type:
+        type: string
     type: object
 host: localhost:8080
 info:

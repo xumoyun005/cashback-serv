@@ -321,31 +321,21 @@ const docTemplate = `{
         },
         "models.CashbackRequest": {
             "type": "object",
-            "required": [
-                "cashback_amount",
-                "cinerama_user_id",
-                "turon_user_id"
-            ],
             "properties": {
                 "cashback_amount": {
-                    "type": "number",
-                    "example": 100.5
+                    "type": "number"
                 },
                 "cinerama_user_id": {
-                    "type": "integer",
-                    "example": 456
-                },
-                "device": {
-                    "type": "string",
-                    "example": "Mozilla/5.0"
+                    "type": "integer"
                 },
                 "host_ip": {
-                    "type": "string",
-                    "example": "192.168.1.1"
+                    "type": "string"
                 },
                 "turon_user_id": {
-                    "type": "integer",
-                    "example": 123
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         }

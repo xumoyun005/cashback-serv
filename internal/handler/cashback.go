@@ -52,7 +52,7 @@ func (h *CashbackHandler) IncreaseCashback(c *gin.Context) {
 	}
 
 	req.HostIP = c.ClientIP()
-	req.Device = c.GetHeader("User-Agent")
+	req.Type = c.GetHeader("User-Agent")
 
 	if err := h.service.IncreaseCashback(&req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -80,7 +80,7 @@ func (h *CashbackHandler) DecreaseCashback(c *gin.Context) {
 	}
 
 	req.HostIP = c.ClientIP()
-	req.Device = c.GetHeader("User-Agent")
+	req.Type = c.GetHeader("User-Agent")
 
 	if err := h.service.DecreaseCashback(&req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

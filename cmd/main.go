@@ -37,8 +37,10 @@ func main() {
 	defer db.Close()
 
 	cashbackRepo := repository.NewCashbackRepository(db)
+	sourceRepo := repository.NewSourceRepository(db)
+	sourceService := service.NewSourceService(sourceRepo)
 
-	cashbackService := service.NewCashbackService(cashbackRepo)
+	cashbackService := service.NewCashbackService(cashbackRepo, sourceService)
 
 	cashbackHandler := handler.NewCashbackHandler(cashbackService)
 
