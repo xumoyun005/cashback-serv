@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"cashback-serv/models"
 	"cashback-serv/internal/service"
+	"cashback-serv/models"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -95,6 +96,8 @@ func (h *CashbackHandler) DecreaseCashback(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param turon_user_id path int true "Turon User ID"
+// @Param from_date query string false "Start date" format(date) example(2024-03-01)
+// @Param to_date query string false "End date" format(date) example(2024-03-20)
 // @Success 200 {object} models.Cashback
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -103,13 +106,30 @@ func (h *CashbackHandler) DecreaseCashback(c *gin.Context) {
 func (h *CashbackHandler) GetCashback(c *gin.Context) {
 	turonUserID, err := strconv.ParseInt(c.Param("turon_user_id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id format"})
 		return
 	}
 
-	cashback, err := h.service.GetCashbackByUserID(turonUserID)
+	fromDate := c.Query("from_date")
+	toDate := c.Query("to_date")
+
+	// Validate date formats if provided
+	if fromDate != "" {
+		if _, err := time.Parse("2006-01-02", fromDate); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid from_date format. Use YYYY-MM-DD"})
+			return
+		}
+	}
+	if toDate != "" {
+		if _, err := time.Parse("2006-01-02", toDate); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid to_date format. Use YYYY-MM-DD"})
+			return
+		}
+	}
+
+	cashback, err := h.service.GetCashbackByUserID(turonUserID, fromDate, toDate)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get cashback data"})
 		return
 	}
 
@@ -122,27 +142,45 @@ func (h *CashbackHandler) GetCashback(c *gin.Context) {
 }
 
 // @Summary CashbackHistory of the user
-// @Description CashbackHistoryUser
+// @Description Get cashback history with optional date filtering and pagination
 // @Tags cashback
 // @Accept json
 // @Produce json
 // @Param turon_user_id path int true "Turon User ID"
-// @Success 200 {array} models.CashbackHistory
+// @Param from_date query string false "Start date" format(date) example(2024-03-01)
+// @Param to_date query string false "End date" format(date) example(2024-03-20)
+// @Param page query int false "Page number" default(1) minimum(1)
+// @Param page_size query int false "Items per page" default(10) minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{} "data: array of cashback history, pagination: pagination info"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /cashback/{turon_user_id}/history [get]
 func (h *CashbackHandler) GetCashbackHistory(c *gin.Context) {
 	turonUserID, err := strconv.ParseInt(c.Param("turon_user_id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "error user id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id format"})
 		return
 	}
 
-	history, err := h.service.GetCashbackHistoryByUserID(turonUserID)
+	fromDate := c.Query("from_date")
+	toDate := c.Query("to_date")
+
+	page, _ := strconv.ParseInt(c.DefaultQuery("page", "1"), 10, 64)
+	pageSize, _ := strconv.ParseInt(c.DefaultQuery("page_size", "10"), 10, 64)
+
+	pagination := &models.Pagination{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	history, err := h.service.GetCashbackHistoryByUserID(turonUserID, fromDate, toDate, pagination)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, history)
+	c.JSON(http.StatusOK, gin.H{
+		"data":       history,
+		"pagination": pagination,
+	})
 }

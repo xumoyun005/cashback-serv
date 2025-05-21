@@ -24,36 +24,6 @@ definitions:
         example: "2024-03-20T10:00:00Z"
         type: string
     type: object
-  models.CashbackHistory:
-    properties:
-      cashback_amount:
-        example: 50.25
-        type: number
-      cashback_id:
-        example: 1
-        type: integer
-      created_at:
-        example: "2024-03-20T10:00:00Z"
-        type: string
-      deleted_at:
-        example: "null"
-        type: string
-      device:
-        example: Mozilla/5.0
-        type: string
-      host_ip:
-        example: 192.168.1.1
-        type: string
-      id:
-        example: 1
-        type: integer
-      type:
-        example: increase
-        type: string
-      updated_at:
-        example: "2024-03-20T10:00:00Z"
-        type: string
-    type: object
   models.CashbackRequest:
     properties:
       cashback_amount:
@@ -94,6 +64,18 @@ paths:
         name: turon_user_id
         required: true
         type: integer
+      - description: Start date
+        example: "2024-03-01"
+        format: date
+        in: query
+        name: from_date
+        type: string
+      - description: End date
+        example: "2024-03-20"
+        format: date
+        in: query
+        name: to_date
+        type: string
       produces:
       - application/json
       responses:
@@ -126,22 +108,46 @@ paths:
     get:
       consumes:
       - application/json
-      description: CashbackHistoryUser
+      description: Get cashback history with optional date filtering and pagination
       parameters:
       - description: Turon User ID
         in: path
         name: turon_user_id
         required: true
         type: integer
+      - description: Start date
+        example: "2024-03-01"
+        format: date
+        in: query
+        name: from_date
+        type: string
+      - description: End date
+        example: "2024-03-20"
+        format: date
+        in: query
+        name: to_date
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'data: array of cashback history, pagination: pagination info'
           schema:
-            items:
-              $ref: '#/definitions/models.CashbackHistory'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:

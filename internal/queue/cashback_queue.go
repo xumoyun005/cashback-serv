@@ -8,7 +8,7 @@ import (
 )
 
 type CashbackRepository interface {
-	GetCashbackByUserID(userID int64) (*models.Cashback, error)
+	GetCashbackByUserID(userID int64, fromDate, toDate string) (*models.Cashback, error)
 	CreateCashback(cashback *models.Cashback) error
 	UpdateCashbackAmount(id int64, amount float64) error
 	CreateCashbackHistory(history *models.CashbackHistory) error
@@ -53,9 +53,9 @@ func (q *CashbackQueue) process() {
 		var err error
 
 		switch op.Type {
-		case "increase":
+		case constants.Increase:
 			err = q.handleIncrease(op.Request)
-		case "decrease":
+		case constants.Decrease:
 			err = q.handleDecrease(op.Request)
 		default:
 			err = errors.New("unknown operation type")
@@ -67,7 +67,7 @@ func (q *CashbackQueue) process() {
 }
 
 func (q *CashbackQueue) handleIncrease(req *models.CashbackRequest) error {
-	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID)
+	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID, "", "")
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (q *CashbackQueue) handleIncrease(req *models.CashbackRequest) error {
 }
 
 func (q *CashbackQueue) handleDecrease(req *models.CashbackRequest) error {
-	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID)
+	cashback, err := q.repo.GetCashbackByUserID(req.TuronUserID, "", "")
 	if err != nil {
 		return err
 	}

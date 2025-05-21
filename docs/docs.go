@@ -145,6 +145,22 @@ const docTemplate = `{
                         "name": "turon_user_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-03-01",
+                        "description": "Start date",
+                        "name": "from_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-03-20",
+                        "description": "End date",
+                        "name": "to_date",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -186,7 +202,7 @@ const docTemplate = `{
         },
         "/cashback/{turon_user_id}/history": {
             "get": {
-                "description": "CashbackHistoryUser",
+                "description": "Get cashback history with optional date filtering and pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -204,16 +220,47 @@ const docTemplate = `{
                         "name": "turon_user_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-03-01",
+                        "description": "Start date",
+                        "name": "from_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-03-20",
+                        "description": "End date",
+                        "name": "to_date",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Items per page",
+                        "name": "page_size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "data: array of cashback history, pagination: pagination info",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.CashbackHistory"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -265,47 +312,6 @@ const docTemplate = `{
                 "turon_user_id": {
                     "type": "integer",
                     "example": 123
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2024-03-20T10:00:00Z"
-                }
-            }
-        },
-        "models.CashbackHistory": {
-            "type": "object",
-            "properties": {
-                "cashback_amount": {
-                    "type": "number",
-                    "example": 50.25
-                },
-                "cashback_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2024-03-20T10:00:00Z"
-                },
-                "deleted_at": {
-                    "type": "string",
-                    "example": "null"
-                },
-                "device": {
-                    "type": "string",
-                    "example": "Mozilla/5.0"
-                },
-                "host_ip": {
-                    "type": "string",
-                    "example": "192.168.1.1"
-                },
-                "id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "type": {
-                    "type": "string",
-                    "example": "increase"
                 },
                 "updated_at": {
                     "type": "string",

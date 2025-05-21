@@ -80,7 +80,7 @@ func (r *CashbackRepository) CreateCashbackHistory(history *models.CashbackHisto
 	return r.db.QueryRow(namedQuery, namedArgs...).Scan(&history.ID)
 }
 
-func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64) (*models.Cashback, error) {
+func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64, fromDate, toDate string) (*models.Cashback, error) {
 	query := `
 		SELECT 
 			id,
@@ -91,11 +91,26 @@ func (r *CashbackRepository) GetCashbackByUserID(turonUserID int64) (*models.Cas
 			updated_at,
 			deleted_at
 		FROM cashbacks
-		WHERE turon_user_id = $1 
+		WHERE turon_user_id = $turon_user_id$ 
 		AND deleted_at IS NULL`
 
+	args := map[string]interface{}{
+		"$turon_user_id$": turonUserID,
+	}
+
+	if fromDate != "" {
+		query += " AND created_at >= $from_date$"
+		args["$from_date$"] = fromDate
+	}
+
+	if toDate != "" {
+		query += " AND created_at <= $to_date$"
+		args["$to_date$"] = toDate
+	}
+
+	namedQuery, namedArgs := buildNamedQuery(query, args)
 	cashback := &models.Cashback{}
-	err := r.db.QueryRow(query, turonUserID).Scan(
+	err := r.db.QueryRow(namedQuery, namedArgs...).Scan(
 		&cashback.ID,
 		&cashback.CashbackAmount,
 		&cashback.TuronUserID,
@@ -130,7 +145,40 @@ func (r *CashbackRepository) UpdateCashbackAmount(id int64, newAmount float64) e
 	return err
 }
 
-func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64) ([]models.CashbackHistory, error) {
+func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64, fromDate, toDate string, pagination *models.Pagination) ([]models.CashbackHistory, error) {
+	// Get total count
+	countQuery := `
+		SELECT COUNT(*)
+		FROM cashback_histories ch
+		JOIN cashbacks c ON c.id = ch.cashback_id
+		WHERE c.turon_user_id = $turon_user_id$ 
+		AND ch.deleted_at IS NULL`
+
+	args := map[string]interface{}{
+		"$turon_user_id$": turonUserID,
+	}
+
+	if fromDate != "" {
+		countQuery += " AND ch.created_at >= $from_date$"
+		args["$from_date$"] = fromDate
+	}
+
+	if toDate != "" {
+		countQuery += " AND ch.created_at <= $to_date$"
+		args["$to_date$"] = toDate
+	}
+
+	namedCountQuery, namedCountArgs := buildNamedQuery(countQuery, args)
+	var total int64
+	err := r.db.QueryRow(namedCountQuery, namedCountArgs...).Scan(&total)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+
+	pagination.ItemTotal = total
+	pagination.PageTotal = (total + pagination.PageSize - 1) / pagination.PageSize
+
+	// Get paginated data
 	query := `
 		SELECT 
 			ch.id,
@@ -144,11 +192,22 @@ func (r *CashbackRepository) GetCashbackHistoryByUserID(turonUserID int64) ([]mo
 			ch.deleted_at
 		FROM cashback_histories ch
 		JOIN cashbacks c ON c.id = ch.cashback_id
-		WHERE c.turon_user_id = $1 
-		AND ch.deleted_at IS NULL
-		ORDER BY ch.created_at DESC`
+		WHERE c.turon_user_id = $turon_user_id$ 
+		AND ch.deleted_at IS NULL`
 
-	rows, err := r.db.Query(query, turonUserID)
+	if fromDate != "" {
+		query += " AND ch.created_at >= $from_date$"
+	}
+	if toDate != "" {
+		query += " AND ch.created_at <= $to_date$"
+	}
+
+	query += " ORDER BY ch.created_at DESC LIMIT $limit$ OFFSET $offset$"
+	args["$limit$"] = pagination.Limit
+	args["$offset$"] = pagination.Offset
+
+	namedQuery, namedArgs := buildNamedQuery(query, args)
+	rows, err := r.db.Query(namedQuery, namedArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query cashback history: %w", err)
 	}
